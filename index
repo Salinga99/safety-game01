@@ -1,0 +1,656 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPF Safety Puzzle Challenge (3x3)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 48rem;
+            width: 100%;
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 4px, 6px, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .input-field {
+            background-color: #4a5568;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #718099;
+            width: 100%;
+        }
+
+        #play-btn {
+            background-color: #48bb78; /* green-500 */
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        #game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .game-controls-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 400px; 
+            max-width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        #original-image-preview {
+            border: 2px solid #a0aec0; 
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-info-bottom {
+            display: flex;
+            justify-content: space-between;
+            width: 400px; 
+            max-width: 100%;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        #timer {
+            color: #f6ad55; 
+        }
+
+        canvas {
+            border: 2px solid #4a5568;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+            background-color: #4a5568;
+            touch-action: manipulation; 
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-weight: 700;
+            color: white;
+            border-radius: 9999px;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .btn-stop {
+            background-color: #ef4444; /* red-500 */
+        }
+        .btn-restart {
+            background-color: #f97316; /* orange-500 */
+            display: none; /* Initially hidden */
+        }
+        .btn:hover:enabled {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin-top: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            min-height: 2rem;
+            color: #48bb78; 
+        }
+        .message-fail {
+            color: #fc8181; 
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="container">
+        <h1 class="text-3xl sm:text-4xl font-extrabold mb-4 text-center text-red-400">SAFETY PUZZLE CHALLENGE 2025 </h1>
+        <p class="text-gray-400 mb-6 text-center">ඔබට ලැබෙන උපරිම කාලය මිනිත්තු 5කි.</p>
+
+        <div id="start-screen">
+            <div class="input-group">
+                <label for="user-name" class="text-gray-400 font-semibold">1. Name:</label>
+                <input type="text" id="user-name" placeholder="Enter your Name" maxlength="50" class="input-field">
+            </div>
+            
+            <div class="input-group">
+                <label for="epf-number" class="text-gray-400 font-semibold">2. EPF Number:</label>
+                <input type="text" id="epf-number" placeholder="Enter your EPF Number" maxlength="20" class="input-field">
+            </div>
+
+            <div class="input-group">
+                <label for="epf-section" class="text-gray-400 font-semibold">3. Section / Team:</label>
+                <input type="text" id="epf-section" placeholder="Enter your Section or Team" maxlength="50" class="input-field">
+            </div>
+
+            <button id="play-btn" class="btn" disabled>
+                <span id="play-btn-text">Loading Puzzle Image...</span>
+            </button>
+        </div>
+
+        <div id="game-screen">
+            
+            <div class="game-controls-top">
+                <canvas id="original-image-preview"></canvas>
+                
+                <button id="stop-btn" class="btn btn-stop" disabled>
+                    STOP & SUBMIT
+                </button>
+            </div>
+
+            <div class="game-info-bottom">
+                <span id="player-name-display"></span>
+                <span id="timer">Time: 05:00</span>
+            </div>
+
+            <canvas id="puzzle-canvas"></canvas>
+
+            <div id="message" class="message"></div>
+
+            <button id="restart-btn" class="btn btn-restart mt-4">
+                TRY AGAIN
+            </button>
+        </div>
+    </div>
+    
+    <form id="score-submission-form" 
+          action="https://formsubmit.co/salingaperera123@gmail.com" 
+          target="_self" 
+          method="POST" 
+          style="display:none;">
+        
+        <input type="hidden" name="Name" id="sub_name">
+        <input type="hidden" name="EPF Number" id="sub_epf">
+        <input type="hidden" name="Section/Team" id="sub_section">
+        <input type="hidden" name="Time Taken (seconds)" id="sub_time">
+        <input type="hidden" name="Score" id="sub_score">
+        <input type="hidden" name="Status" id="sub_status">
+        
+        <input type="hidden" name="_template" value="table"> 
+        <input type="hidden" name="_subject" value="New 3x3 Safety Puzzle Score Submission"> 
+        
+        </form>
+
+
+    <script>
+        // --- GAME CONFIGURATION ---
+        const TILE_ROWS = 3; // Changed to 3
+        const TILE_COLS = 3; // Changed to 3
+        const TILE_COUNT = TILE_ROWS * TILE_COLS; // 9 tiles
+        const MAX_TIME_SECONDS = 5 * 60; // 5 minutes
+        const FIXED_IMAGE_SRC = 'img01.jpg'; // **Ensure this file is in the same folder**
+        const CANVAS_SIZE = 400; // Main puzzle size
+        const PREVIEW_SIZE = 80; // Small preview size
+
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const canvas = document.getElementById('puzzle-canvas');
+        const ctx = canvas.getContext('2d');
+        const previewCanvas = document.getElementById('original-image-preview'); 
+        const previewCtx = previewCanvas.getContext('2d');
+        const userNameInput = document.getElementById('user-name');
+        const epfNumberInput = document.getElementById('epf-number'); // New input
+        const epfSectionInput = document.getElementById('epf-section');
+        const playBtn = document.getElementById('play-btn');
+        const playBtnText = document.getElementById('play-btn-text');
+        const messageDiv = document.getElementById('message');
+        const timerDisplay = document.getElementById('timer');
+        const playerNameDisplay = document.getElementById('player-name-display');
+        const scoreSubmissionForm = document.getElementById('score-submission-form');
+        const stopBtn = document.getElementById('stop-btn'); // Renamed submitBtn to stopBtn
+        const restartBtn = document.getElementById('restart-btn');
+        
+        // Set fixed canvas dimensions
+        canvas.width = CANVAS_SIZE;
+        canvas.height = CANVAS_SIZE;
+        previewCanvas.width = PREVIEW_SIZE; 
+        previewCanvas.height = PREVIEW_SIZE;
+
+        // --- Game State Variables ---
+        let originalImage = new Image();
+        let tiles = []; 
+        let isImageLoaded = false;
+        let isGameStarted = false;
+        let isSubmissionPending = false; // Prevents multiple submissions
+        let timerInterval = null;
+        let remainingTime = MAX_TIME_SECONDS;
+        let timeElapsed = 0; 
+
+        let emptyTileIndex = TILE_COUNT - 1; 
+
+        // Tile Object Structure
+        class Tile {
+            constructor(originalIndex, imageX, imageY, width, height) {
+                this.originalIndex = originalIndex;
+                this.currentX = 0;
+                this.currentY = 0;
+                this.imageX = imageX;
+                this.imageY = imageY;
+                this.width = width;
+                this.height = height;
+            }
+        }
+        
+        // --- Utility Functions ---
+
+        // Solvability check for 3x3 puzzle (odd grid size, depends only on inversions being even)
+        const getInversions = (arr) => {
+            let inversions = 0;
+            const puzzleArr = arr
+                .filter(t => t.originalIndex !== TILE_COUNT - 1)
+                .map(t => t.originalIndex);
+            
+            for (let i = 0; i < puzzleArr.length; i++) {
+                for (let j = i + 1; j < puzzleArr.length; j++) {
+                    if (puzzleArr[i] > puzzleArr[j]) {
+                        inversions++;
+                    }
+                }
+            }
+            return inversions;
+        }
+
+        const isSolvable = (arr) => {
+            return getInversions(arr) % 2 === 0;
+        }
+
+        /**
+         * Handles the end of the game (Win, Time Out, Stop).
+         * @param {boolean} solved - True if the puzzle was fully solved.
+         * @param {string} endReason - 'WIN', 'TIMEOUT', or 'STOP'.
+         */
+        const processEndGame = (solved, endReason) => {
+            if (isSubmissionPending) return;
+            isSubmissionPending = true;
+
+            stopTimer();
+            disableControls();
+            isGameStarted = false;
+            
+            // Calculate time elapsed
+            timeElapsed = MAX_TIME_SECONDS - remainingTime;
+            
+            let score;
+            let statusMessage = '';
+            let messageClass = 'message';
+            let status;
+
+            if (solved) {
+                score = Math.max(0, 100 - Math.floor(timeElapsed / 2)); // Adjusted scoring for 3x3 simplicity
+                status = 'COMPLETED';
+                statusMessage = `<span class="text-2xl font-bold text-green-500">CONGRATULATIONS! You Won!</span><br>
+                                 <span class="text-xl">Time Taken: ${formatTime(timeElapsed)}</span><br>
+                                 <span class="text-2xl font-bold text-yellow-400">YOUR SCORE: ${score} marks!</span>`;
+            } else {
+                score = 0;
+                messageClass = 'message message-fail';
+                status = (endReason === 'TIMEOUT') ? 'TIME OUT' : 'STOPPED';
+                statusMessage = `<span class="text-2xl font-bold">GAME ENDED (${status}).</span><br>
+                                 <span class="text-xl">Time Elapsed: ${formatTime(timeElapsed)}</span><br>
+                                 <span class="text-2xl font-bold">YOUR SCORE: 0 marks.</span>`;
+
+                if (endReason === 'TIMEOUT') {
+                    statusMessage = `<span class="text-2xl font-bold text-red-500">TIME'S UP! Try Again.</span><br>` + statusMessage;
+                }
+                if (endReason === 'STOP') {
+                    statusMessage = `<span class="text-2xl font-bold text-red-400">GAME STOPPED. Try Again.</span><br>` + statusMessage;
+                }
+            }
+            
+            messageDiv.className = messageClass;
+            messageDiv.innerHTML = statusMessage;
+            stopBtn.style.display = 'none';
+            restartBtn.style.display = 'inline-block';
+
+            // Prepare form data
+            document.getElementById('sub_name').value = userNameInput.value;
+            document.getElementById('sub_epf').value = epfNumberInput.value; // New input field
+            document.getElementById('sub_section').value = epfSectionInput.value;
+            document.getElementById('sub_time').value = timeElapsed;
+            document.getElementById('sub_score').value = score;
+            document.getElementById('sub_status').value = status;
+            
+            submitScoreAutomatically();
+        }
+
+        const checkWin = () => {
+            if (!isGameStarted || isSubmissionPending) return;
+
+            let solved = true;
+            for (let i = 0; i < TILE_COUNT - 1; i++) {
+                if (tiles[i].originalIndex !== i) {
+                    solved = false;
+                    break;
+                }
+            }
+            
+            // Check if the empty tile is in the last position (index 8 for 3x3)
+            if (solved && tiles[TILE_COUNT - 1].originalIndex === TILE_COUNT - 1) {
+                draw(); // Draw the final image (no empty tile)
+                processEndGame(true, 'WIN');
+            }
+        }
+
+        // --- Core Game Functions ---
+
+        const initializeTiles = () => {
+            tiles = [];
+            const imageTileWidth = originalImage.width / TILE_COLS;
+            const imageTileHeight = originalImage.height / TILE_ROWS;
+
+            for (let i = 0; i < TILE_COUNT; i++) {
+                const col = i % TILE_COLS;
+                const row = Math.floor(i / TILE_COLS);
+
+                const tile = new Tile(
+                    i,
+                    col * imageTileWidth,
+                    row * imageTileHeight,
+                    imageTileWidth,
+                    imageTileHeight
+                );
+                tiles.push(tile);
+            }
+        };
+
+        const shuffleTiles = () => {
+            // Ensure solvability and that the puzzle isn't immediately solved
+            do {
+                for (let i = tiles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+                }
+            } while (!isSolvable(tiles) || tiles[TILE_COUNT - 1].originalIndex === TILE_COUNT - 1); 
+            
+            emptyTileIndex = tiles.findIndex(t => t.originalIndex === TILE_COUNT - 1);
+        };
+        
+        const draw = () => {
+            ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            const tileWidth = CANVAS_SIZE / TILE_COLS;
+            const tileHeight = CANVAS_SIZE / TILE_ROWS;
+
+            for (let i = 0; i < TILE_COUNT; i++) {
+                const tile = tiles[i];
+                const col = i % TILE_COLS;
+                const row = Math.floor(i / TILE_COLS);
+                
+                let drawX = col * tileWidth;
+                let drawY = row * tileHeight;
+
+                tile.currentX = drawX;
+                tile.currentY = drawY;
+                
+                // Draw blank space for empty tile unless solved (which draws the whole image)
+                if (tile.originalIndex === TILE_COUNT - 1 && !isSubmissionPending) {
+                    ctx.fillStyle = '#1a202c'; 
+                    ctx.fillRect(drawX, drawY, tileWidth, tileHeight);
+                    continue;
+                }
+
+                ctx.drawImage(
+                    originalImage,
+                    tile.imageX,
+                    tile.imageY,
+                    tile.width,
+                    tile.height,
+                    drawX,
+                    drawY,
+                    tileWidth,
+                    tileHeight
+                );
+                
+                ctx.strokeStyle = '#2d3748';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(drawX, drawY, tileWidth, tileHeight);
+            }
+        };
+
+        const drawPreview = () => {
+             previewCtx.drawImage(originalImage, 0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+        }
+        
+        const getTileIndexAtPoint = (x, y) => {
+            const tileWidth = CANVAS_SIZE / TILE_COLS;
+            const tileHeight = CANVAS_SIZE / TILE_ROWS;
+
+            const col = Math.floor(x / tileWidth);
+            const row = Math.floor(y / tileHeight);
+            
+            const index = row * TILE_COLS + col;
+            return (index >= 0 && index < TILE_COUNT) ? index : -1;
+        };
+
+        const getEventPos = (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = event.clientX || (event.touches ? event.touches[0].clientX : 0);
+            const clientY = event.clientY || (event.touches ? event.touches[0].clientY : 0);
+            
+            const offsetX = clientX - rect.left;
+            const offsetY = clientY - rect.top;
+            
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            return {
+                x: offsetX * scaleX,
+                y: offsetY * scaleY
+            };
+        }
+        
+        // --- Timer & Controls ---
+        const formatTime = (seconds) => {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        };
+
+        const startTimer = () => {
+            remainingTime = MAX_TIME_SECONDS;
+            timerDisplay.textContent = `Time: ${formatTime(remainingTime)}`;
+
+            timerInterval = setInterval(() => {
+                remainingTime--;
+                timerDisplay.textContent = `Time: ${formatTime(remainingTime)}`;
+
+                if (remainingTime <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "Time's Up!";
+                    processEndGame(false, 'TIMEOUT');
+                }
+            }, 1000);
+        };
+
+        const stopTimer = () => {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        };
+
+        const disableControls = () => {
+            canvas.removeEventListener('click', onClickMove);
+        }
+        
+        const enableControls = () => {
+            canvas.addEventListener('click', onClickMove);
+        }
+
+        const onClickMove = (event) => {
+            event.preventDefault();
+            if (isSubmissionPending || !isGameStarted) return;
+            const pos = getEventPos(event);
+            const tileIndex = getTileIndexAtPoint(pos.x, pos.y);
+            
+            if (tileIndex !== -1 && tileIndex !== emptyTileIndex) {
+                
+                const tileRow = Math.floor(tileIndex / TILE_COLS);
+                const tileCol = tileIndex % TILE_COLS;
+                const emptyRow = Math.floor(emptyTileIndex / TILE_COLS);
+                const emptyCol = emptyTileIndex % TILE_COLS;
+
+                const isAdjacent = (Math.abs(tileRow - emptyRow) + Math.abs(tileCol - emptyCol) === 1);
+
+                if (isAdjacent) {
+                    [tiles[tileIndex], tiles[emptyTileIndex]] = [tiles[emptyTileIndex], tiles[tileIndex]];
+                    emptyTileIndex = tileIndex;
+                    
+                    draw();
+                    checkWin();
+                }
+            }
+        }
+        
+        // --- Submission Function ---
+        const submitScoreAutomatically = () => {
+            // Submits the hidden form using FormSubmit.co
+            scoreSubmissionForm.submit();
+        }
+
+        // --- Event Handlers ---
+        stopBtn.addEventListener('click', () => {
+            if (isGameStarted) {
+                stopBtn.textContent = 'Submitting...';
+                stopBtn.disabled = true;
+                // Manual stop always results in a score of 0, status 'STOPPED'
+                processEndGame(false, 'STOP'); 
+            }
+        });
+
+        restartBtn.addEventListener('click', () => {
+            // Reset state and return to start screen
+            isSubmissionPending = false;
+            stopBtn.disabled = true;
+            stopBtn.textContent = 'STOP & SUBMIT';
+            restartBtn.style.display = 'none';
+            messageDiv.textContent = 'Puzzle Reset. Enter details to start again.';
+            
+            // Clear input fields (optional, but good for a new attempt)
+            // userNameInput.value = '';
+            // epfNumberInput.value = '';
+            // epfSectionInput.value = '';
+            
+            startScreen.style.display = 'flex';
+            gameScreen.style.display = 'none';
+            checkInputs();
+        });
+
+
+        // --- Game Setup Flow ---
+
+        const startGame = () => {
+            if (!isImageLoaded || userNameInput.value.trim() === '' || epfNumberInput.value.trim() === '' || epfSectionInput.value.trim() === '') return;
+
+            isSubmissionPending = false;
+            isGameStarted = true;
+            messageDiv.textContent = 'Go!';
+            
+            stopBtn.disabled = false; 
+            stopBtn.style.display = 'inline-block';
+            restartBtn.style.display = 'none';
+
+            
+            playerNameDisplay.textContent = `Player: ${userNameInput.value}`; // Don't show EPF number here
+            timerDisplay.textContent = `Time: ${formatTime(MAX_TIME_SECONDS)}`;
+
+            startScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+
+            initializeTiles();
+            shuffleTiles();
+            
+            startTimer();
+            enableControls();
+            
+            draw();
+            drawPreview(); 
+        };
+
+        const checkInputs = () => {
+            const isFilled = userNameInput.value.trim() !== '' && 
+                             epfNumberInput.value.trim() !== '' &&
+                             epfSectionInput.value.trim() !== '';
+
+            if (isImageLoaded && isFilled) {
+                playBtn.disabled = false;
+                playBtn.classList.add('bg-green-500');
+                playBtnText.textContent = 'START PUZZLE';
+            } else if (isImageLoaded) {
+                 playBtn.disabled = true;
+                 playBtn.classList.remove('bg-green-500');
+                 playBtnText.textContent = 'Fill all details to Play';
+            }
+        };
+
+        originalImage.onload = () => {
+            isImageLoaded = true;
+            messageDiv.textContent = 'Image loaded! Ready to start.';
+            checkInputs();
+            drawPreview();
+        };
+
+        originalImage.onerror = () => {
+            playBtnText.textContent = 'Error loading image!';
+            messageDiv.textContent = 'Error: Puzzle image (img01.jpg) could not be loaded. Please ensure it is in the same directory.';
+        };
+
+        originalImage.src = FIXED_IMAGE_SRC;
+
+
+        // --- Event Listeners ---
+        playBtn.addEventListener('click', startGame);
+        userNameInput.addEventListener('input', checkInputs);
+        epfNumberInput.addEventListener('input', checkInputs);
+        epfSectionInput.addEventListener('input', checkInputs);
+
+        // Initial check
+        checkInputs();
+    </script>
+</body>
+</html>
+
+
+
